@@ -1,0 +1,426 @@
+on init
+
+loglevel 9
+    export EXTERNAL_STORAGE /mnt/sdcard
+    mkdir /mnt/sdcard 0000 system system
+    symlink /mnt/sdcard /sdcard
+
+# Modules
+    insmod /lib/modules/fsr.ko
+    insmod /lib/modules/fsr_stl.ko
+    insmod /lib/modules/rfs_glue.ko
+    insmod /lib/modules/rfs_fat.ko
+    insmod /lib/modules/j4fs.ko
+    insmod /lib/modules/vibrator.ko
+    insmod /lib/modules/bthid.ko
+
+on fs
+
+    # mount again - default mounts in init.rc is not valid for this device
+
+    mount ext4 /dev/block/stl9 /system wait nodev noatime nodiratime noauto_da_alloc
+    mount ext4 /dev/block/stl10 /data  wait nosuid nodev noatime nodiratime noauto_da_alloc
+    mount rfs /dev/block/stl3 /efs nosuid nodev check=no
+    mount ext4 /dev/block/stl11 /cache nosuid nodev noatime nodiratime errors=continue nobh data=writeback barrier=0 noauto_da_alloc
+    mount j4fs /dev/block/stl6 /mnt/.lfs
+
+    # mount debugfs
+    mount debugfs /sys/kernel/debug /sys/kernel/debug
+
+    # parameter block
+    mkdir /mnt/.lfs 0755 root root
+    insmod /lib/modules/j4fs.ko
+    mount j4fs /dev/block/stl6 /mnt/.lfs
+
+
+on post-fs
+# Modules
+    # now we can load modules
+    insmod /lib/modules/param.ko
+    insmod /lib/modules/storage.ko
+    insmod /lib/modules/ansi_cprng.ko
+    insmod /lib/modules/scsi_wait_scan.ko
+
+    insmod /lib/modules/dpram.ko
+    insmod /lib/modules/multipdp.ko
+
+on post-fs-data
+
+# permissions for MTP device node_temporary permission_will be changed 0660
+    chmod 0660 /dev/usb_mtp_gadget
+    chown system system /dev/usb_mtp_gadget
+
+    #DRM directory creation
+    mkdir /system/etc/security/drm 0775
+    chown root root /system/etc/security/drm
+    chmod 0775 /system/etc/security/drm
+
+# Added for testing DIVX DRM
+    mkdir /efs/.android 0775
+    chown radio radio /efs/.android
+    chmod 0775 /efs/.android
+
+# Added for testing WMDRM 
+    mkdir /data/data/.drm 0775
+    mkdir /data/data/.drm/.wmdrm 0775
+
+    chown media system /data/data/.drm
+    chown media system /data/data/.drm/.wmdrm
+
+# Setting device permissions for /dev/fmradio
+    chown system system /dev/fmradio
+    chmod 0660 /dev/fmradio
+
+# Create data/gps for GPS demon
+    mkdir /data/gps 700 gps system
+    chown gps system /data/gps
+    chown gps root /sys/class/sec/gps/GPS_PWR_EN/value
+    chmod 660 /sys/class/sec/gps/GPS_PWR_EN/value
+    chown gps root /sys/class/sec/gps/GPS_nRST/value
+    chmod 660 /sys/class/sec/gps/GPS_nRST/value
+
+# Permissions for bluetooth.
+    setprop ro.bt.bdaddr_path /data/misc/bluetoothd/bt_addr
+    chown bluetooth bluetooth ro.bt.bdaddr_path
+    chown bluetooth bluetooth /dev/s3c2410_serial0
+    chmod 0660 /dev/s3c2410_serial0
+    chmod 0660 /sys/class/rfkill/rfkill0/state
+    chmod 0660 /sys/class/rfkill/rfkill1/state
+    chown bluetooth bluetooth /sys/module/bluetooth_power/parameters/power
+    chown bluetooth bluetooth /proc/bluetooth/sleep/proto
+    chown system system /sys/module/sco/parameters/disable_esco
+    chmod 0660 /sys/module/bluetooth_power/parameters/power
+    chmod 0660 /proc/bluetooth/sleep/proto
+    chmod 0660 /sys/class/rfkill/rfkill2/state
+    chmod 0660 /sys/class/rfkill/rfkill3/state
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill1/state
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill2/state
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill3/state
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill1/type
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill2/type
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill3/type
+
+# Permissions for System Server and daemons.
+    chown system system /sys/class/backlight/s5p_bl/brightness
+
+    # change permission for uart_switch
+    chown radio radio /sys/class/sec/uart_switch/UART_SEL/value
+    chmod 660 /sys/class/sec/uart_switch/UART_SEL/value
+
+    chown system radio /sys/class/sec/switch/usb_state
+    chown system radio /sys/class/sec/switch/usb_sel
+    chown system radio /sys/class/sec/switch/uart_sel
+
+    # create data/gps for GPS demon
+    mkdir /data/gps 771 gps system
+    chown gps system /data/gps
+
+    # wi-fi
+    mkdir /data/misc/wifi/sockets 0770 wifi wifi
+    mkdir /data/misc/dhcp 0770 dhcp dhcp
+
+    # allow system to modify cpufreq control files
+    chown root system /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+    chown root system /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+    chown root system /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+
+# for sensor control
+	chown system input /sys/class/input/input0/enable
+	chown system input /sys/class/input/input0/delay
+	chown system input /sys/class/input/input0/wake
+	chown system input /sys/class/input/input0/data
+
+	chown system input /sys/class/input/input1/enable
+	chown system input /sys/class/input/input1/delay
+	chown system input /sys/class/input/input1/wake
+	chown system input /sys/class/input/input1/threshold
+	chown system input /sys/class/input/input1/distortion
+	chown system input /sys/class/input/input1/shape
+	chown system input /sys/class/input/input1/offsets
+	chown system input /sys/class/input/input1/filter_enable
+	chown system input /sys/class/input/input1/filter_len
+	chown system input /sys/class/input/input1/data
+	chown system input /sys/class/input/input1/status
+	chown system input /sys/class/input/input1/position
+
+	chown system input /sys/class/input/input2/enable
+	chown system input /sys/class/input/input2/delay
+	chown system input /sys/class/input/input2/wake
+	chown system input /sys/class/input/input2/threshold
+	chown system input /sys/class/input/input2/distortion
+	chown system input /sys/class/input/input2/shape
+	chown system input /sys/class/input/input2/offsets
+	chown system input /sys/class/input/input2/filter_enable
+	chown system input /sys/class/input/input2/filter_len
+	chown system input /sys/class/input/input2/data
+	chown system input /sys/class/input/input2/status
+	chown system input /sys/class/input/input2/position
+
+	chown system input /sys/class/input/input3/enable
+	chown system input /sys/class/input/input3/delay
+	chown system input /sys/class/input/input3/wake
+	chown system input /sys/class/input/input3/threshold
+	chown system input /sys/class/input/input3/distortion
+	chown system input /sys/class/input/input3/shape
+	chown system input /sys/class/input/input3/offsets
+	chown system input /sys/class/input/input3/filter_enable
+	chown system input /sys/class/input/input3/filter_len
+	chown system input /sys/class/input/input3/data
+	chown system input /sys/class/input/input3/status
+	chown system input /sys/class/input/input3/position
+
+	chown system input /sys/class/input/input4/enable
+	chown system input /sys/class/input/input4/delay
+	chown system input /sys/class/input/input4/wake
+	chown system input /sys/class/input/input4/threshold
+	chown system input /sys/class/input/input4/distortion
+	chown system input /sys/class/input/input4/shape
+	chown system input /sys/class/input/input4/offsets
+	chown system input /sys/class/input/input4/filter_enable
+	chown system input /sys/class/input/input4/filter_len
+	chown system input /sys/class/input/input4/data
+	chown system input /sys/class/input/input4/status
+	chown system input /sys/class/input/input4/position
+
+	chown system input /sys/class/input/input5/enable
+	chown system input /sys/class/input/input5/delay
+	chown system input /sys/class/input/input5/wake
+	chown system input /sys/class/input/input5/position
+
+	chown system input /sys/class/input/input6/enable
+	chown system input /sys/class/input/input6/delay
+	chown system input /sys/class/input/input6/wake
+
+	chown system input /sys/class/input/input7/enable
+	chown system input /sys/class/input/input7/delay
+	chown system input /sys/class/input/input7/wake
+
+	chown system input /sys/class/input/input8/enable
+	chown system input /sys/class/input/input8/delay
+	chown system input /sys/class/input/input8/wake
+
+	chown system input /sys/class/input/input9/enable
+	chown system input /sys/class/input/input9/delay
+	chown system input /sys/class/input/input9/wake
+	chown system input /dev/i2c-12
+
+# change permissions for modem 
+	chown radio system /sys/class/modemctl/xmm/control 
+	chown radio system /sys/class/net/svnet0/waketime
+	chown radio system /sys/class/net/svnet0/pdp/activate 
+	chown radio system /sys/class/net/svnet0/pdp/deactivate
+	chown radio system /sys/class/net/svnet0/pdp/suspend 
+	chown radio system /sys/class/net/svnet0/pdp/resume
+
+# change permissions for USB
+	chown radio system /sys/class/sec/switch/usb_sel
+	chown radio system /sys/class/sec/switch/uart_sel
+	chown radio system /sys/class/sec/switch/usb_state
+	chown radio system /sys/class/sec/switch/disable_vbus
+	chown radio system /sys/class/sec/switch/device_type
+	chown radio system /sys/class/sec/switch/.usb_lock/enable 
+	chown radio system /sys/devices/platform/android_usb/ums
+	chown radio system /sys/devices/platform/android_usb/cpufreq_lock
+	chmod 0664 /sys/devices/platform/android_usb/UsbMenuSel
+	chmod 0664 /sys/devices/platform/android_usb/AskOnStatus	
+	chown radio system /sys/devices/platform/android_usb/UsbMenuSel
+
+# change permissions for fuel gauge
+	chown radio system /sys/class/sec/fg_atcom_test/set_fuel_gauage_read
+	chown radio system /sys/class/sec/fg_atcom_test/set_fuel_gauage_reset
+
+# change permissions for battery
+	chown radio system /sys/class/power_supply/battery/batt_vol
+	chown radio system /sys/class/power_supply/battery/batt_vol_adc
+	chown radio system /sys/class/power_supply/battery/batt_temp
+	chown radio system /sys/class/power_supply/battery/batt_temp_adc
+	chown radio system /sys/class/power_supply/battery/batt_temp_radc
+	chown radio system /sys/class/power_supply/battery/batt_current_adc
+	chown radio system /sys/class/power_supply/battery/charging_source
+	chown radio system /sys/class/power_supply/battery/fg_soc
+	chown radio system /sys/class/power_supply/battery/fg_psoc
+	chown radio system /sys/class/power_supply/battery/reset_soc
+	chown radio system /sys/class/power_supply/battery/charging_mode_booting
+	chown radio system /sys/class/power_supply/battery/batt_temp_check
+	chown radio system /sys/class/power_supply/battery/batt_full_check
+	chown radio system /sys/class/power_supply/battery/batt_temp_adc_spec
+	chown radio system /sys/class/power_supply/battery/batt_test_value
+	chown radio system /sys/class/power_supply/battery/talk_gsm
+	chown radio system /sys/class/power_supply/battery/talk_wcdma
+	chown radio system /sys/class/power_supply/battery/dmb_play
+	chown radio system /sys/class/power_supply/battery/music_play
+	chown radio system /sys/class/power_supply/battery/video_play
+	chown radio system /sys/class/power_supply/battery/camera_use
+	chown radio system /sys/class/power_supply/battery/internet_use
+	chown radio system /sys/class/power_supply/battery/is_booting
+	chown radio system /sys/class/power_supply/battery/hw_revision
+	chown radio system /sys/class/power_supply/battery/batt_esus_test
+	chown radio system /sys/class/power_supply/battery/batt_type
+
+#for jack control
+	chown radio system /sys/class/jack/jack_selector/select_jack
+
+#change permissions for touch
+	chown radio system /sys/class/sec/qt602240_noise_test/set_refer0
+	chown radio system /sys/class/sec/qt602240_noise_test/set_delta0
+	chown radio system /sys/class/sec/qt602240_noise_test/set_refer1
+	chown radio system /sys/class/sec/qt602240_noise_test/set_delta1
+	chown radio system /sys/class/sec/qt602240_noise_test/set_refer2
+	chown radio system /sys/class/sec/qt602240_noise_test/set_delta2
+	chown radio system /sys/class/sec/qt602240_noise_test/set_refer3
+	chown radio system /sys/class/sec/qt602240_noise_test/set_delta3
+	chown radio system /sys/class/sec/qt602240_noise_test/set_refer4
+	chown radio system /sys/class/sec/qt602240_noise_test/set_delta4
+	chown radio system /sys/class/sec/qt602240_noise_test/set_referminmax 
+	chown radio system /sys/class/sec/qt602240_noise_test/set_deltaminmax 
+	chown radio system /sys/class/sec/qt602240_noise_test/set_all_refer
+	chown radio system /sys/class/sec/qt602240_noise_test/set_threshould 
+	chown radio system /sys/class/sec/qt602240_atcom_test/set_qt_update 
+	chown radio system /sys/class/sec/qt602240_atcom_test/set_qt_firm_version 
+	chown radio system /sys/class/sec/qt602240_atcom_test/set_qt_firm_status 
+	chown radio system /sys/class/sec/qt602240_atcom_test/set_qt_firm_version_read
+	chown radio system /sys/class/touch/switch/set_power
+	chown radio system /sys/class/touch/switch/set_acquisition
+	chown radio system /sys/class/touch/switch/set_touchscreen 
+	chown radio system /sys/class/touch/switch/set_keyarray 
+	chown radio system /sys/class/touch/switch/set_total
+	chown radio system /sys/class/touch/switch/set_write
+	chown radio system /sys/class/touch/switch/set_noise
+	chown radio system /sys/class/touch/switch/set_grip  
+	chown radio system /sys/class/touch/qt_stylus/config_mode
+	chown radio system /sys/class/sec/ts/set_tsp_for_inputmethod
+	chown radio system /sys/class/sec/ts/call_release_touch    
+	chown radio system /sys/class/sec/ts/firmware
+	chown radio system /sys/class/sec/ts/LED
+	chown radio system /sys/class/sec/ts/set_touchkey_led
+
+# change permissions for lcd
+	chown radio system /sys/class/lcd/s5p_lcd/lcd_power
+	chown radio radio /sys/class/gammaset/switch_gammaset/gammaset_file_cmd
+	chown radio radio /sys/class/aclset/switch_aclset/aclset_file_cmd
+	chown radio system /sys/class/sec/sec_lcd/lcdtype_file_cmd
+	chown radio radio /sys/class/mdnieset_ui/switch_mdnieset_ui/mdnieset_ui_file_cmd
+	chown radio radio /sys/class/mdnieset_outdoor/switch_mdnieset_outdoor/mdnieset_outdoor_file_cmd
+
+# change permissions for touchkey
+	chown radio system /sys/class/misc/melfas_touchkey/touch_version
+	chown radio system /sys/class/misc/melfas_touchkey/touch_update
+	chown radio system /sys/class/misc/melfas_touchkey/brightness
+	chown radio system /sys/class/misc/melfas_touchkey/enable_disable
+
+	chown radio system /sys/devices/platform/s3c-keypad/key_pressed
+
+	chown radio system /sys/class/misc/level/control
+
+	chown radio system /sys/class/sec/switch/tethering
+
+	chown radio system /sys/class/lightsensor/switch_cmd/lightsensor_file_cmd
+
+# change permissions for sdcard
+	chown radio system /sys/devices/platform/s3c-sdhci.2/card_status
+
+    # allow net_raw to have access to /dev/socket directory
+    chown root net_raw /dev/socket
+    chmod 0775 /dev/socket
+
+    # make sure that /data/.nvram_net.txt exists during wifi initialization
+    start set-macaddr
+
+    setprop vold.post_fs_data_done 1
+
+on boot
+# For datarouter
+    chown system system /dev/ttyGS0
+    chown system system /dev/dun
+
+# Fake some battery state
+    setprop status.battery.state Slow
+    setprop status.battery.level 5
+    setprop status.battery.level_raw  50
+    setprop status.battery.level_scale 9
+
+    # phone
+    setprop ro.radio.noril yes
+    setprop ro.telephony.call_ring.multiple 0
+
+  # Enable WiFi
+  setprop wifi.interface "eth0"
+
+    # data encryption
+    setprop ro.crypto.keyfile.userdata /data/metadata
+
+# 3D init
+service pvrsrvinit /system/bin/pvrsrvinit
+    class core
+    user root
+    group root
+    oneshot
+
+# set device specific MAC addresses, depends on preceding start of rild
+service set-macaddr /system/vendor/bin/set-macaddr
+    user root
+    group root
+    disabled
+    oneshot
+
+on property:sys.boot_completed=1
+    start set-macaddr
+
+service wpa_supplicant /system/bin/wpa_supplicant -Dwext -ieth0 -c/data/misc/wifi/wpa_supplicant.conf
+    class main
+    socket wpa_eth0 dgram 0660 wifi wifi
+    disabled
+    oneshot
+
+service dhcpcd_eth0 /system/bin/dhcpcd -ABLK
+    class main
+    disabled
+    oneshot
+
+service dhcpcd_p2p /system/bin/dhcpcd -aABKL
+    class main
+    disabled
+    oneshot
+
+service dhcpcd_bnep0 /system/bin/dhcpcd -ABKL
+    class main
+    disabled
+    oneshot
+
+service iprenew_eth0 /system/bin/dhcpcd -n
+    class main
+    disabled
+    oneshot
+
+service iprenew_p2p /system/bin/dhcpcd -n
+    class main
+    disabled
+    oneshot
+
+service iprenew_bnep0 /system/bin/dhcpcd -n
+    class main
+    disabled
+    oneshot
+
+service hciattach /system/bin/brcm_patchram_plus -d --enable_hci --baudrate 3000000 --patchram /system/bin/BCM4329B1_002.002.023.0746.0832.hcd /dev/s3c2410_serial0
+    class main
+    user bluetooth
+    group bluetooth net_bt_admin
+    disabled
+    oneshot
+
+service tvout /system/bin/tvoutserver
+    class main
+    user system
+    group graphics
+
+service tvouthack /system/bin/tvouthack
+    class main
+    user root system
+    group system graphics
+    disabled
